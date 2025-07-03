@@ -134,6 +134,12 @@ public:
     /// \return The computed private key
     static PrivateKey bip32DeriveRawSeed(TWCoinType coin, const Data& seed, const DerivationPath& path);
 
+    static std::optional<PrivateKey> getPrivateKeyByChainCode(const std::string& chainCode, const std::string& key, TWCoinType coin, const DerivationPath& derivationPath);
+    static std::optional<PrivateKey> getPrivateKeyByChainCodeCardano(const std::string& key, const std::string& ext, const std::string& chainCode, TWCoinType coin, const DerivationPath& derivationPath);
+
+    static std::string getHDMasterNode(const std::string& mnemonic, TWCoinType coin);
+    static std::string getHDMasterNodeCardano(const std::string& mnemonic, TWCoinType coin);
+
   private:
     void updateSeedAndEntropy(bool check = true);
 

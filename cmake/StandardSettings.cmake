@@ -1,9 +1,9 @@
 #
 # Default settings
 #
-if (NOT FLUTTER)
-    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-endif ()
+#if (NOT FLUTTER)
+#   set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+#endif ()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version" FORCE)
