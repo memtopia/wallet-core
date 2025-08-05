@@ -299,11 +299,124 @@ json raw_dataJSON(const protocol::Transaction::raw& raw) {
     return raw_dataJSON;
 }
 
+std::vector<uint8_t> encodeVarint32(uint32_t value) {
+    std::vector<uint8_t> result;
+    while (value > 0x7F) {
+        result.push_back(static_cast<uint8_t>((value & 0x7F) | 0x80));
+        value >>= 7;
+    }
+    result.push_back(static_cast<uint8_t>(value));
+    return result;
+}
+
+std::vector<uint8_t> encodeVarint64(uint64_t value) {
+    std::vector<uint8_t> result;
+    while (value > 0x7F) {
+        result.push_back(static_cast<uint8_t>((value & 0x7F) | 0x80));
+        value >>= 7;
+    }
+    result.push_back(static_cast<uint8_t>(value));
+    return result;
+}
+
+std::vector<uint8_t> encodeBytes(int fieldNumber, const std::string& value) {
+    std::vector<uint8_t> result;
+    if (!value.empty()) {
+        // Tag: (fieldNumber << 3) | 2 (wire type 2 for length-delimited)
+        int tag = (fieldNumber << 3) | 2;
+        auto tagBytes = encodeVarint32(static_cast<uint32_t>(tag));
+        result.insert(result.end(), tagBytes.begin(), tagBytes.end());
+
+        // Length
+        auto lengthBytes = encodeVarint32(static_cast<uint32_t>(value.length()));
+        result.insert(result.end(), lengthBytes.begin(), lengthBytes.end());
+
+        // Data
+        result.insert(result.end(), value.begin(), value.end());
+    }
+    return result;
+}
+
+std::vector<uint8_t> encodeInt64(int fieldNumber, int64_t value) {
+    std::vector<uint8_t> result;
+    if (value > 0) {
+        // Tag: (fieldNumber << 3) | 0 (wire type 0 for varint)
+        int tag = (fieldNumber << 3) | 0;
+        auto tagBytes = encodeVarint32(static_cast<uint32_t>(tag));
+        result.insert(result.end(), tagBytes.begin(), tagBytes.end());
+
+        // Value
+        auto valueBytes = encodeVarint64(static_cast<uint64_t>(value));
+        result.insert(result.end(), valueBytes.begin(), valueBytes.end());
+    }
+    return result;
+}
+
+void raw_data_hex_encode(const protocol::Transaction& transaction, const TW::Data& signature, std::vector<uint8_t>& transactionBytes) {
+
+    // Field 1 TransactionRaw
+    const auto& raw = transaction.raw_data();
+    std::vector<uint8_t> rawDataBytes;
+
+    // fieldIds => [1, 3, 4, 8, 9, 10, 11, 12, 14, 18]
+    // values => [refBlockBytes, refBlockNum, refBlockHash, expiration, auths, data, contract, scripts, timestamp, feeLimit]
+
+    // Field 1: ref_block_bytes
+    auto field1 = encodeBytes(1, raw.ref_block_bytes());
+    rawDataBytes.insert(rawDataBytes.end(), field1.begin(), field1.end());
+
+    // Field 3: ref_block_num
+    auto field3 = encodeInt64(3, raw.ref_block_num());
+    rawDataBytes.insert(rawDataBytes.end(), field3.begin(), field3.end());
+
+    // Field 4: ref_block_hash
+    auto field4 = encodeBytes(4, raw.ref_block_hash());
+    rawDataBytes.insert(rawDataBytes.end(), field4.begin(), field4.end());
+
+    // Field 8: expiration
+    auto field8 = encodeInt64(8, raw.expiration());
+    rawDataBytes.insert(rawDataBytes.end(), field8.begin(), field8.end());
+
+    // Field 9: auths - null
+
+    // Field 10: data
+    auto field10 = encodeBytes(10, raw.data());
+    rawDataBytes.insert(rawDataBytes.end(), field10.begin(), field10.end());
+
+    // Field 11: contract
+    if (raw.contract_size() > 0) {
+        const auto contractSerialized = raw.contract(0).SerializeAsString();
+        auto field11 = encodeBytes(11, contractSerialized);
+        rawDataBytes.insert(rawDataBytes.end(), field11.begin(), field11.end());
+    }
+
+    // Field 12: scripts - null
+
+    // Field 14: timestamp
+    auto field14 = encodeInt64(14, raw.timestamp());
+    rawDataBytes.insert(rawDataBytes.end(), field14.begin(), field14.end());
+
+    // Field 18: fee_limit
+    auto field18 = encodeInt64(18, raw.fee_limit());
+    rawDataBytes.insert(rawDataBytes.end(), field18.begin(), field18.end());
+
+    auto transactionField1 = encodeBytes(1, std::string(rawDataBytes.begin(), rawDataBytes.end()));
+    transactionBytes.insert(transactionBytes.end(), transactionField1.begin(), transactionField1.end());
+
+    // Field 2: signature
+    if (!signature.empty()) {
+        auto signatureField = encodeBytes(2, std::string(signature.begin(), signature.end()));
+        transactionBytes.insert(transactionBytes.end(), signatureField.begin(), signatureField.end());
+    }
+}
 json transactionJSON(const protocol::Transaction& transaction, const TW::Data& txID, const TW::Data& signature) {
     json transactionJSON;
     transactionJSON["raw_data"] = raw_dataJSON(transaction.raw_data());
     transactionJSON["txID"] = hex(txID);
     transactionJSON["signature"] = json::array({hex(signature)});
+    std::vector<uint8_t> transactionBytes;
+    raw_data_hex_encode(transaction, signature, transactionBytes);
+    transactionJSON["raw_data_hex"] = hex(Data(transactionBytes.begin(), transactionBytes.end()));
 
     return transactionJSON;
 }
