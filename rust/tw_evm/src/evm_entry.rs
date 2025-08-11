@@ -6,6 +6,7 @@ use crate::abi::AbiResult;
 use crate::evm_context::EvmContext;
 use crate::modules::abi_encoder::AbiEncoder;
 use crate::modules::rlp_encoder::RlpEncoder;
+use crate::modules::rlp_decoder::RlpDecoder;
 use tw_memory::Data;
 use tw_proto::EthereumAbi::Proto as AbiProto;
 use tw_proto::EthereumRlp::Proto as RlpProto;
@@ -19,6 +20,12 @@ pub trait EvmEntry {
     #[inline]
     fn encode_rlp(input: RlpProto::EncodingInput<'_>) -> RlpProto::EncodingOutput<'static> {
         RlpEncoder::<Self::Context>::encode_with_proto(input)
+    }
+
+    /// Decodes RLP encoded data to structured format.
+    #[inline]
+    fn decode_rlp(input: RlpProto::DecodingInput<'_>) -> RlpProto::DecodingOutput<'static> {
+        RlpDecoder::<Self::Context>::decode_with_proto(input)
     }
 
     /// Decodes function call data to human readable json format, according to input abi json.
@@ -71,6 +78,9 @@ pub trait EvmEntryExt {
     /// Encodes an item or a list of items as Eth RLP binary format.
     fn encode_rlp(&self, input: &[u8]) -> ProtoResult<Data>;
 
+    /// Decodes RLP encoded data to JSON format.
+    fn decode_rlp(&self, input: &[u8]) -> ProtoResult<Data>;
+
     /// Decodes function call data to human readable json format, according to input abi json.
     fn decode_abi_contract_call(&self, input: &[u8]) -> ProtoResult<Data>;
 
@@ -97,6 +107,18 @@ where
     fn encode_rlp(&self, input: &[u8]) -> ProtoResult<Data> {
         let input = deserialize(input)?;
         let output = <Self as EvmEntry>::encode_rlp(input);
+        serialize(&output)
+    }
+
+    fn decode_rlp(&self, input: &[u8]) -> ProtoResult<Data> {
+        use tw_proto::EthereumRlp::Proto;
+        use std::borrow::Cow;
+        
+        let proto_input = Proto::DecodingInput {
+            encoded: Cow::from(input),
+        };
+        
+        let output = <Self as EvmEntry>::decode_rlp(proto_input);
         serialize(&output)
     }
 

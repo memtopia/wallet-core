@@ -47,3 +47,15 @@ message EncodingOutput {
     // Error code description.
     string error_message = 3;
 }
+
+// RLP decoding input.
+message DecodingInput {
+    // RLP encoded data to decode.
+    bytes encoded = 1;
+}
+
+/// RLP decoding output.
+message DecodingOutput {
+    // The decoded RLP data as JSON string.
+    string json = 1;
+}

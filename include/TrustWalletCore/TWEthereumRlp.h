@@ -22,4 +22,12 @@ struct TWEthereumRlp;
 TW_EXPORT_STATIC_METHOD
 TWData* _Nonnull TWEthereumRlpEncode(enum TWCoinType coin, TWData* _Nonnull input);
 
+/// Decode RLP encoded data to JSON format.
+///
+/// \param coin EVM-compatible coin type.
+/// \param input Non-null serialized `EthereumRlp::Proto::DecodingInput`.
+/// \return JSON string representation of the decoded RLP data.
+TW_EXPORT_STATIC_METHOD
+TWString* _Nonnull TWEthereumRlpDecode(enum TWCoinType coin, TWData* _Nonnull input);
+
 TW_EXTERN_C_END
