@@ -4,3 +4,5 @@
 
 pub mod bit_reader_ffi;
 pub mod uuid_ffi;
+pub mod tma_utils_ffi;
+pub mod tma_utils;
